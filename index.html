@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paper Title — Demo Gallery</title>
+  <meta name="description" content="Paper demo gallery with authors, affiliations, and two-dropdown video selector." />
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --card: #121621;
+      --muted: #9aa4b2;
+      --text: #e6eef8;
+      --accent: #6ea8fe;
+      --ring: #2a3548;
+      --radius: 16px;
+    }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: linear-gradient(180deg, #0b0d12 0%, #0c1018 100%); color: var(--text); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 20px 64px; }
+    header { display:flex; flex-direction:column; gap: 14px; margin-bottom: 24px; }
+    h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.1; margin: 0; letter-spacing: -0.02em; }
+    .subtitle { color: var(--muted); font-size: 14px; }
+    .card { background: radial-gradient(1200px 600px at 10% 0%, rgba(110,168,254,.08), transparent 60%), var(--card); border: 1px solid var(--ring); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .pill { display:inline-block; background: rgba(255,255,255,.06); border: 1px solid var(--ring); padding: 6px 10px; border-radius: 999px; font-size: 12px; color: var(--muted); }
+    .grid { display:grid; gap: 18px; grid-template-columns: 1fr; }
+    @media (min-width: 880px) { .grid { grid-template-columns: 1.2fr .8fr; } }
+    .section { padding: 18px; }
+    .section + .section { border-top: 1px solid var(--ring); }
+
+    /* Authors */
+    .authors { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; }
+    .author { display:flex; gap:8px; align-items:center; }
+    .affil { color: var(--muted); font-size: 13px; }
+
+    /* Controls */
+    .controls { display:grid; gap: 12px; grid-template-columns: 1fr; }
+    @media (min-width: 640px) { .controls { grid-template-columns: 1fr 1fr; } }
+    label { display:block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    select { width:100%; background: #0f1420; color: var(--text); padding: 12px 12px; border-radius: 12px; border: 1px solid var(--ring); outline: none; }
+    select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(110,168,254,.25); }
+
+    /* Video + prompt */
+    .viewer { padding: 18px; display:flex; flex-direction:column; gap: 16px; }
+    .video-wrap { background: #090c12; border: 1px solid var(--ring); border-radius: 14px; overflow:hidden; aspect-ratio: 16 / 9; display:flex; align-items:center; justify-content:center; }
+    video, iframe { width:100%; height:100%; display:block; }
+    .empty { color: var(--muted); font-size: 14px; text-align:center; padding: 22px; }
+    .prompt { white-space: pre-wrap; background: #0f1420; border: 1px solid var(--ring); border-radius: 12px; padding: 12px; color: #d7e0ea; font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; }
+
+    /* Footer */
+    footer { margin-top: 36px; color: var(--muted); font-size: 12px; text-align:center; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="pill" id="paper-venue">Preprint • 2025</span>
+      <h1 id="paper-title">Your Paper Title Goes Here</h1>
+      <div class="authors" id="authors-list" aria-label="Authors and affiliations"></div>
+      <div class="subtitle" id="paper-subtitle">A short one-liner describing the paper.</div>
+    </header>
+
+    <div class="card grid" role="region" aria-label="Demo selector">
+      <div class="section">
+        <h2 style="margin:0 0 8px 0; font-size: 18px;">Choose a configuration</h2>
+        <p class="subtitle" style="margin:0 0 16px 0;">Select one option from each menu. Each pair maps to a unique video and prompt.</p>
+        <div class="controls" id="controls">
+          <div>
+            <label for="menuA" id="menuA-label">Menu A</label>
+            <select id="menuA" aria-labelledby="menuA-label"></select>
+          </div>
+          <div>
+            <label for="menuB" id="menuB-label">Menu B</label>
+            <select id="menuB" aria-labelledby="menuB-label"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section viewer">
+        <div class="video-wrap" id="videoWrap" aria-live="polite" aria-busy="false">
+          <div class="empty" id="emptyState">Select from both menus to load a demo.</div>
+        </div>
+        <div>
+          <div class="subtitle" style="margin-bottom:6px;">Prompt</div>
+          <div class="prompt" id="promptBox">—</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <span id="cite">© <span id="year"></span> Your Author Group. Code on <a href="https://github.com/yourname/your-repo" target="_blank" rel="noopener">GitHub</a>.</span>
+    </footer>
+  </div>
+
+  <script>
+    // ==== 1) Paper metadata (edit these) ======================================
+    const PAPER = {
+      title: "Your Paper Title Goes Here",
+      subtitle: "A short one-liner describing the paper.",
+      venue: "Preprint • 2025",
+      authors: [
+        { name: "Alice Example", affiliation: "Example University" },
+        { name: "Bob Example", affiliation: "Sample Lab" },
+        { name: "Carol Example", affiliation: "Acme Research" },
+      ],
+    };
+
+    // Options for each dropdown (provide up to 10 each)
+    const MENU_A = [
+      "Scene A1", "Scene A2", "Scene A3", "Scene A4", "Scene A5",
+      "Scene A6", "Scene A7", "Scene A8", "Scene A9", "Scene A10",
+    ];
+    const MENU_B = [
+      "Method B1", "Method B2", "Method B3", "Method B4", "Method B5",
+      "Method B6", "Method B7", "Method B8", "Method B9", "Method B10",
+    ];
+
+    // ==== 2) Data mapping (A×B -> {src, prompt}) =============================
+    // Provide one entry per pair (up to 100). Keys use the normalized option
+    // text joined by "|" to avoid collisions, e.g., "scene-a1|method-b1".
+    // src can be a relative file (mp4/webm under /videos) or a hosted URL
+    // (e.g., GitHub raw, GDrive share, or YouTube embed).
+
+    // Helper to normalize menu text into a safe key segment
+    const keyify = (s) => s.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+
+    const MAP = {
+      // Examples (replace with your real data):
+      // Local MP4 example (place under /videos)
+      [`${keyify("Scene A1")}|${keyify("Method B1")}`]: {
+        type: "video", // "video" for mp4/webm, "youtube" for YT embed
+        src: "videos/a1_b1.mp4",
+        prompt: "Generate a serene coastal scene at golden hour with gentle camera pan.",
+      },
+      // YouTube example
+      [`${keyify("Scene A2")}|${keyify("Method B3")}`]: {
+        type: "youtube",
+        // paste the full embed URL (https://www.youtube.com/embed/VIDEO_ID)
+        src: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        prompt: "Compare baseline vs. our method with identical seed and CFG.",
+      },
+      // Another local example
+      [`${keyify("Scene A10")}|${keyify("Method B4")}`]: {
+        type: "video",
+        src: "videos/a10_b4.webm",
+        prompt: "Prompt used for the mountain-to-city timelapse with motion blur suppression.",
+      },
+    };
+
+    // ==== 3) Render metadata and controls ====================================
+    const $ = (id) => document.getElementById(id);
+
+    function renderMeta() {
+      $("paper-title").textContent = PAPER.title;
+      $("paper-subtitle").textContent = PAPER.subtitle;
+      $("paper-venue").textContent = PAPER.venue;
+      $("year").textContent = new Date().getFullYear();
+
+      const list = $("authors-list");
+      PAPER.authors.forEach(a => {
+        const span = document.createElement('span');
+        span.className = 'author';
+        span.innerHTML = `<strong>${a.name}</strong> <span class="affil">(${a.affiliation})</span>`;
+        list.appendChild(span);
+      });
+    }
+
+    function renderSelect(id, options) {
+      const sel = $(id);
+      sel.innerHTML = '';
+      sel.appendChild(new Option('— Select —', '', true, true));
+      options.forEach(opt => sel.appendChild(new Option(opt, opt)));
+    }
+
+    renderMeta();
+    renderSelect('menuA', MENU_A);
+    renderSelect('menuB', MENU_B);
+
+    // ==== 4) Selection logic ==================================================
+    const state = { A: '', B: '' };
+
+    function currentKey() {
+      if (!state.A || !state.B) return null;
+      return `${keyify(state.A)}|${keyify(state.B)}`;
+    }
+
+    function clearViewer(message = 'Select from both menus to load a demo.') {
+      const wrap = $("videoWrap");
+      wrap.setAttribute('aria-busy', 'false');
+      wrap.innerHTML = `<div class="empty">${message}</div>`;
+      $("promptBox").textContent = '—';
+    }
+
+    function renderViewer(entry) {
+      const wrap = $("videoWrap");
+      wrap.setAttribute('aria-busy', 'true');
+      wrap.innerHTML = '';
+
+      if (!entry) {
+        clearViewer('No demo for this pair yet.');
+        return;
+      }
+
+      if (entry.type === 'youtube') {
+        const iframe = document.createElement('iframe');
+        iframe.src = entry.src;
+        iframe.loading = 'lazy';
+        iframe.title = 'Demo video';
+        iframe.setAttribute('frameborder', '0');
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+        iframe.allowFullscreen = true;
+        wrap.appendChild(iframe);
+      } else {
+        const video = document.createElement('video');
+        video.controls = true;
+        video.preload = 'metadata';
+        video.innerHTML = `<source src="${entry.src}" type="video/${entry.src.endsWith('.webm') ? 'webm' : 'mp4'}">` +
+                          '<p>Your browser does not support HTML5 video.</p>';
+        wrap.appendChild(video);
+      }
+
+      $("promptBox").textContent = entry.prompt || '—';
+      wrap.setAttribute('aria-busy', 'false');
+    }
+
+    function onChange(e) {
+      const id = e.target.id;
+      if (id === 'menuA') state.A = e.target.value;
+      if (id === 'menuB') state.B = e.target.value;
+      const key = currentKey();
+      if (!key) { clearViewer(); return; }
+      renderViewer(MAP[key]);
+    }
+
+    $("menuA").addEventListener('change', onChange);
+    $("menuB").addEventListener('change', onChange);
+
+    // Initial empty state
+    clearViewer();
+  </script>
+</body>
+</html>
